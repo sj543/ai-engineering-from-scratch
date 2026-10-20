@@ -1,6 +1,7 @@
 import sys
 import json
 import hashlib
+import time
 from pathlib import Path
 
 try:
@@ -36,19 +37,28 @@ def load_and_inspect(dataset_name: str, config: str = None, split: str = "train"
     return ds
 
 
-def stream_dataset(dataset_name: str, config: str = None, max_rows: int = 5):
+def stream_dataset(dataset_name: str, config: str = None, max_rows: int = None, duration_sec: float = None):
     kwargs = {"path": dataset_name, "split": "train", "streaming": True}
     if config:
         kwargs["name"] = config
 
     ds = load_dataset(**kwargs)
     rows = []
+    start_time = time.time()
+    end_time = start_time + duration_sec if duration_sec else None
+
     for i, example in enumerate(ds):
         rows.append(example)
-        if i >= max_rows - 1:
+        
+        # Stop by row count (if max_rows given)
+        if max_rows and i >= max_rows - 1:
+            break
+        # Stop by time (if duration_sec given)
+        if end_time and time.time() >= end_time:
             break
 
-    print(f"Streamed {len(rows)} rows from {dataset_name}")
+    elapsed = time.time() - start_time
+    print(f"Streamed {len(rows)} rows from {dataset_name} in {elapsed:.2f}s")
     return rows
 
 
